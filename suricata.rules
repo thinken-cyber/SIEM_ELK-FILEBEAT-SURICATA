@@ -8,8 +8,7 @@ alert icmp any any -> any any (msg:"ICMP Echo Reply Detected"; itype:0; classtyp
 
 # 3. DNS Query
 alert udp any any -> any 53 (msg:"[ALERT] DNS truy vấn bất thường (>=10 lần/15s từ 1 IP)"; dns_query; content:"."; threshold:type threshold, track by_src, count 10, seconds 15; classtype:trojan-activity; sid:1004001; rev:3;)
-#Goi tin di tu src_ip_port bat ki den des_ip_port 53, khop rule khi phat hien 1 may hoi 
-#danh ba trang web (VD: google.com IP la gi)
+#Goi tin UDP di tu src_ip_port bat ki den des_ip_port53 , phat hien truy van bat thuong neu xuat hien hon 10 truy van/15s tu 1 dia chi ip
 
 # 4. HTTP GET Request
 alert http any any -> any any (msg:"HTTP GET Request Detected"; flow:established,to_server; content:"GET"; http_method; sid:1000004; rev:1;)
