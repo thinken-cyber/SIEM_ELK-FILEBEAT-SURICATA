@@ -8,12 +8,11 @@ alert icmp any any -> any any (msg:"ICMP Echo Reply Detected"; itype:0; classtyp
 
 # 3. DNS Query
 alert udp any any -> any 53 (msg:"[ALERT] DNS truy vấn bất thường (>=10 lần/15s từ 1 IP)"; dns_query; content:"."; threshold:type threshold, track by_src, count 10, seconds 15; classtype:trojan-activity; sid:1004001; rev:3;)
-#Goi tin UDP di tu src_ip_port bat ki den des_ip_port53 , phat hien truy van bat thuong neu xuat hien hon 10 truy van/15s tu 1 dia chi ip
+#Goi tin di tu src_ip_port bat ki den des_ip_port 53, khop rule khi phat hien 1 may gui tren 1o truy van dns/15s
 
 # 4. HTTP GET Request
-alert http any any -> any any (msg:"HTTP GET Request Detected"; flow:established,to_server; content:"GET"; http_method; sid:1000004; rev:1;)
-#Goi tin HTTP di tu src_ip_port bat ki den des_ip_port bat ki,phat hien 1 trinh duyet yeu cau
-#tai noi dung cua 1 trang web (VD: curl -X GET "http://localhost:9200"
+alert http any any -> any any (msg:"[ALERT] HTTP GET Flood from Source (>=100 in 30s)"; flow:established,to_server; content:"GET"; http_method; threshold:type threshold, track by_src, count 100, seconds 30; classtype:attempted-dos; sid:2000001; rev:2;)
+# Phát hiện 1 máy client gửi >=100 GET requests trong 30 giây → nghi vấn HTTP Flood
 
 # 5. SQLMap User-Agent
 alert http any any -> any any (msg:"Possible SQL Injection Attempt (sqlmap)"; flow:to_server,established; content:"sqlmap"; http_user_agent; nocase; classtype:web-application-attack; sid:1000005; rev:2;)
@@ -28,8 +27,8 @@ alert tcp any any -> any 25 (msg:"SMTP HELO Command Detected"; content:"HELO"; n
 #Goi tin TCP tu src_ip_port bat ki den des_ip_port 25 , goi tin co noi dung "Hello" khong phan biet hoa thuong->Phat hien 1 client dang chao hoi 1 may chu email
 
 # 8. TLS Client Hello
-alert tls any any -> any any (msg:"TLS Client Hello Detected"; classtype:protocol-command-decode; sid:1000008; rev:3;)
-#Goi tin gui tu src_ip_port bat ki den des_ip_port bat ki muc dich nhan dien ket noi HTTPS duoc ma hoa giua client va server 
+alert tls any any -> any any (msg:"[INFO] TLS Client Hello Detected"; threshold:type threshold, track by_src, count 1, seconds 300; classtype:protocol-command-decode; sid:1000008; rev:4;)
+#Goi tin gui tu src_ip_port bat ki den des_ip_port bat ki muc dich nhan dien ket noi HTTPS, chi alert ip noi bo 1 lan / 5 phut 
 
 # 9. SMB Access
 alert tcp any any -> any 445 (msg:"SMB Protocol Access Detected"; classtype:protocol-command-decode; sid:1000009; rev:2;)
@@ -52,8 +51,8 @@ alert tcp any any -> any any (msg:"Possible SYN Flood DoS Detected"; flags:S; th
 #Goi tin TCP gui tu src_ip_port bat ki den des_ip_port bat ki , gui goi SYN nhung ma khong bao gio hoan tat(tuc la trong buoc 3 cua TCP handshake,client phai gui lai goi ACK de confim ket noi , phat hien neu co 50 goi SYn duoc gui trong 10s tu1 IP
 
 # 14. HTTP Flood
-alert http any any -> any $HTTP_PORTS (msg:"Possible HTTP Flood DDoS Detected"; flow:established,to_server; content:"GET"; http_method; threshold:type both, track by_dst, count 500, seconds 30; classtype:denial-of-service; sid:1000014; rev:1;)
-#Goi tin HTTP gui tu src_ip_port bat ki den des_ip_port cua HTTP , chi nhan luong tu client den server,noi dung goi tin co GET , phat ra canh bao neu co 500 goi tin GET gui den tu 1 ip trong 30 giay
+alert http any any -> any any (msg:"[ALERT] HTTP GET Flood to Destination (>=200 in 30s)"; flow:established,to_server; content:"GET"; http_method; threshold:type threshold, track by_dst, count 200, seconds 30; classtype:attempted-dos; sid:2000002; rev:2;)
+# Phát hiện 1 server nhận >=200 GET requests trong 30 giây → nghi vấn bị HTTP Flood
 
 # 15. SQLi: CASE WHEN in URI
 alert http any any -> any any (msg:"SQL Injection Detected in URL (CASE WHEN)"; flow:to_server,established; content:"CASE WHEN"; http_uri; nocase; classtype:web-application-attack; sid:1000015; rev:3;)
