@@ -1,0 +1,17 @@
+# Kibana is served by a back end server. This setting specifies the port to use.
+server.port: 5601
+
+# Specifies the address to which the Kibana server will bind.
+server.host: "localhost"
+
+# Enables you to specify a path to mount Kibana at if you are running behind a proxy.
+# server.basePath: ""
+
+# The Elasticsearch instance to use for all your queries.
+elasticsearch.hosts: ["http://localhost:9200"]
+
+# Kibana uses the host’s hostname when logging or displaying user-facing messages.
+# server.name: "your-hostname"
+
+# Set the default locale
+# i18n.locale: "en"
