@@ -1,0 +1,31 @@
+# /etc/filebeat/filebeat.yml
+
+# ============================== Filebeat modules ==============================
+# Kích hoạt module Suricata để Filebeat biết cách đọc file eve.json
+# và tự động parse JSON trước khi gửi đi.
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+# ================================== Outputs ===================================
+# Cấu hình nơi Filebeat sẽ gửi dữ liệu đến.
+# Chỉ cần cấu hình Logstash output.
+
+# ---------------------------- Elasticsearch Output ----------------------------
+# Đảm bảo phần này đã được vô hiệu hóa (comment out).
+#output.elasticsearch:
+  #hosts: ["localhost:9200"]
+
+# ------------------------------ Logstash Output -------------------------------
+# Kích hoạt và trỏ đến máy chủ Logstash của bạn.
+output.logstash:
+  hosts: ["localhost:5044"] # Thay đổi nếu Logstash ở máy khác
+
+# ================================= Processors =================================
+# Giữ nguyên các processor mặc định.
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~
