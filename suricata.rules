@@ -27,7 +27,7 @@ alert tcp any any -> any 25 (msg:"SMTP HELO Command Detected"; content:"HELO"; n
 #Goi tin TCP tu src_ip_port bat ki den des_ip_port 25 , goi tin co noi dung "Hello" khong phan biet hoa thuong->Phat hien 1 client dang chao hoi 1 may chu email
 
 # 8. TLS Client Hello
-alert tls any any -> any any (msg:"[INFO] TLS Client Hello Detected"; threshold:type threshold, track by_src, count 1, seconds 300; classtype:protocol-command-decode; sid:1000008; rev:4;)
+alert tls $HOME_NET any -> !$HOME_NET any (msg:"[INFO] TLS Client Hello Detected"; threshold:type limit, track by_src, count 1, seconds 300; classtype:protocol-command-decode; sid:1000008; rev:4;)
 #Goi tin gui tu src_ip_port bat ki den des_ip_port bat ki muc dich nhan dien ket noi HTTPS, chi alert ip noi bo 1 lan / 5 phut 
 
 # 9. SMB Access
@@ -43,7 +43,7 @@ alert http any any -> any $HTTP_PORTS (msg:"Possible Slowloris DoS Attack Detect
 #GOi tin HTTP tu src_ip_port bat ki den des_ip_port(tap hop port HTTP),chi xet luong tu client ->server , co noi  dung GET khong phan biet hoa thuong,phat hien khi co 10 yeu cau GET trong 60s
 
 # 12. UDP Flood
-alert udp any any -> any any (msg:"[TEST] UDP Flood Detected"; flow:to_server; threshold:type both, track by_dst, count 10, seconds 5; classtype:denial-of-service; sid:1009012; rev:1;)
+alert udp any any -> any any (msg:"[TEST] UDP Flood Detected"; flow:to_server;detection_filter: track by_dst, count 10, seconds 5; classtype:denial-of-service; sid:1009012; rev:1;)
 #Goi tin UDP tu src_ip_port nay den src_ip_port khac, chi xet luong tu client->server,phat hien khi co 10 goi UDP gui tu 1 client trong 5s
 
 # 13. SYN Flood
@@ -51,7 +51,7 @@ alert tcp any any -> any any (msg:"Possible SYN Flood DoS Detected"; flags:S; th
 #Goi tin TCP gui tu src_ip_port bat ki den des_ip_port bat ki , gui goi SYN nhung ma khong bao gio hoan tat(tuc la trong buoc 3 cua TCP handshake,client phai gui lai goi ACK de confim ket noi , phat hien neu co 50 goi SYn duoc gui trong 10s tu1 IP
 
 # 14. HTTP Flood
-alert http any any -> any any (msg:"[ALERT] HTTP GET Flood to Destination (>=200 in 30s)"; flow:established,to_server; content:"GET"; http_method; threshold:type threshold, track by_dst, count 200, seconds 30; classtype:attempted-dos; sid:2000002; rev:2;)
+alert http any any -> $HTTP_SERVERS any (msg:"[ALERT] HTTP GET Flood to Destination (>=200 in 30s)"; flow:established,to_server; content:"GET"; http_method; threshold:type threshold, track by_dst, count 200, seconds 30; classtype:attempted-dos; sid:2000002; rev:2;)
 # Phát hiện 1 server nhận >=200 GET requests trong 30 giây → nghi vấn bị HTTP Flood
 
 # 15. SQLi: CASE WHEN in URI
@@ -69,3 +69,9 @@ alert http any any -> any any (msg:"SQL Injection Logic Pattern Detected (AND =)
 # 18. SQLi: AND 'A'='A' in URI
 alert http any any -> any any (msg:"SQL Injection Boolean Pattern Detected (AND 'A'='A')"; flow:to_server,established; content:"AND 'A'='A'"; http_uri; nocase; classtype:web-application-attack; sid:1000018; rev:2;)
 #Goi tin http gui tu 1 src_ip_port den des_ip_port bat ki , tim kiem chinh xac chuoi ký tự "AND 'A'='A'" trong URL , khong phan biet hoa thuong
+
+#19. SMB ATACK ETERNALBLUE
+alert smb any any -> any 445 (msg:"ETERNALBLUE ATACK SMB ";content:"AAAAAAAAAA";nocase;flow:to_server,established;threshold:type threshold,track by_src,count 5, seconds 100;classtype:smb-buffer-overflow;sid:1000019;rev:1;priority:3;)
+
+#20.HTTP Request EXE File
+alert http $HOME_NET any -> any any (msg:"Request Download exe File";http.method;content:"GET";http.uri;content:".exe";nocase;flow:to_server,established;classtype:trojan-activity;sid:1000020;rev:1;priority:1;)
