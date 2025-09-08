@@ -1,91 +1,87 @@
 %YAML 1.1
 ---
 
-suricata-version: "7.0"
+suricata-version: "7.0.10"  
 
-vars:
-  address-groups:
-    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
-    EXTERNAL_NET: "!$HOME_NET"
-    HTTP_SERVERS: "$HOME_NET"
-    SMTP_SERVERS: "$HOME_NET"
-    SQL_SERVERS: "$HOME_NET"
-    DNS_SERVERS: "$HOME_NET"
-    TELNET_SERVERS: "$HOME_NET"
-    AIM_SERVERS: "$EXTERNAL_NET"
-    DC_SERVERS: "$HOME_NET"
-    DNP3_SERVER: "$HOME_NET"
-    DNP3_CLIENT: "$HOME_NET"
-    MODBUS_CLIENT: "$HOME_NET"
-    MODBUS_SERVER: "$HOME_NET"
-    ENIP_CLIENT: "$HOME_NET"
-    ENIP_SERVER: "$HOME_NET"
+vars:  # Biến dùng để thay thế trong rule và cấu hình sau
+  address-groups:  # Nhóm địa chỉ mạng
+    HOME_NET: "[192.168.2.0/24,10.0.0.0/8,172.16.0.0/12]"  # Mạng nội bộ (các IP riêng)
+    EXTERNAL_NET: "!$HOME_NET"                            # Mọi IP không thuộc HOME_NET (Internet)
+    HTTP_SERVERS: "[192.168.2.0/24]"                             # Máy chủ HTTP nội bộ
+    SMTP_SERVERS: "[]"                             # Máy chủ gửi email nội bộ
+    SQL_SERVERS: "[]"                             # Máy chủ cơ sở dữ liệu nội bộ
+    DNS_SERVERS: "[]"                            # Máy chủ DNS nội bộ
 
-  port-groups:
-    HTTP_PORTS: "80"
-    SHELLCODE_PORTS: "!80"
-    ORACLE_PORTS: 1521
-    SSH_PORTS: 22
-    DNP3_PORTS: 20000
-    MODBUS_PORTS: 502
-    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
-    FTP_PORTS: 21
-    GENEVE_PORTS: 6081
-    VXLAN_PORTS: 4789
-    TEREDO_PORTS: 3544
+  port-groups:  # Nhóm các cổng sử dụng để dễ gán trong rules
+    HTTP_PORTS: "80"                                      # Cổng dịch vụ HTTP
+    SHELLCODE_PORTS: "!80"                                # Dò shellcode trên tất cả cổng trừ 80
+    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"              # Cổng chứa dữ liệu: HTTP, POP3, IMAP
+    SSH_PORTS: "22"                                       # Cổng SSH
+    FTP_PORTS: "21"                                       # Cổng FTP
 
-default-log-dir: /var/log/suricata/
+default-log-dir: /var/log/suricata/                       # Thư mục lưu trữ log mặc định
 
-stats:
-  enabled: yes
-  interval: 8
+stats:  # Cấu hình ghi thống kê
+  enabled: yes                                            # Bật ghi log thống kê
+  interval: 8                                             # Mỗi 8 giây ghi một lần
 
-outputs:
+outputs:  # Cấu hình các loại log đầu ra
   - fast:
       enabled: yes
-      filename: fast.log
-      append: yes
+      filename: fast.log                                  # File log cảnh báo đơn giản, dễ đọc
+      append: yes                                         # Ghi tiếp vào file thay vì ghi đè
 
-  - eve-log:
+  - eve-log:                                              # Dạng log JSON đầy đủ, tương thích với ELK
       enabled: yes
-      filetype: regular
-      filename: eve.json
-      types:
+      filetype: regular                                   # Ghi ra file thông thường (không socket)
+      filename: eve.json                                  # Tên file log
+      types:                                              # Loại thông tin sẽ được log
         - alert:
-            tagged-packets: yes
-        - dns
-        - http
-        - tls
-        - flow
-        - anomaly
-        - icmp
+            tagged-packets: yes                           # Ghi gói tin liên quan tới cảnh báo
+        - http                                             # Ghi chi tiết request HTTP
+        - dns                                              # Log truy vấn DNS
+        - tls                                              # Log TLS handshake
+        - flow                                             # Thông tin về phiên (flow)
+        - ssh                                              # Ghi kết nối SSH
+        - smtp                                             # Log SMTP (email)
+        - smb                                              # Log truy cập file chia sẻ Windows
+        - dcerpc                                           # Log giao tiếp RPC
+        - nfs                                              # Log NFS (Network File System)
+        - ftp                                              # Log FTP
+        - tftp                                             # Log TFTP
+        - krb5                                             # Log Kerberos (xác thực mạng nội bộ)
+        - snmp                                             # Log SNMP (quản trị mạng)
+        - rdp                                              # Log giao tiếp Remote Desktop
+        - dhcp                                             # Log cấp phát IP động
+        - mqtt                                             # Log giao tiếp MQTT (IoT)
+        - ike                                              # Log VPN IKE
+        - quic                                             # Log giao thức QUIC (Google)
+        - anomaly                                          # Ghi nhận các bất thường (detection engine)
 
   - stats:
       enabled: yes
-      filename: stats.log
+      filename: stats.log                                 # File log thống kê hiệu suất
       append: yes
-      totals: yes
-      threads: no
+      totals: yes                                         # Ghi tổng số thông kê toàn hệ thống
+      threads: no                                         # Không ghi thống kê theo từng luồng
 
-logging:
-  default-log-level: notice
+logging:  # Log hoạt động của chính Suricata
+  default-log-level: notice                               # Mức log mặc định: cảnh báo & thông báo
   outputs:
     - console:
-        enabled: yes
+        enabled: yes                                      # Hiện log ra màn hình terminal (nếu chạy foreground)
     - file:
         enabled: yes
-        level: info
-        filename: suricata.log
+        level: info                                       # Mức log ghi ra file
+        filename: suricata.log                            # Tên file log hoạt động chính
 
-af-packet:
-  - interface: eth0
-    cluster-id: 99
-    cluster-type: cluster_flow
-    defrag: yes
+af-packet:  # Module bắt gói trực tiếp từ card mạng (packet capture)
+  - interface: eth0                                       # Card mạng giám sát
+    cluster-id: 99                                        # ID cụm để phân luồng đa nhân
+    cluster-type: cluster_flow                            # Phân chia flow để xử lý song song
+    defrag: yes                                           # Cho phép sắp xếp lại các gói bị phân mảnh IP
 
-  - interface: default
-
-app-layer:
+app-layer:  # Cấu hình xử lý các giao thức tầng ứng dụng
   protocols:
     http:
       enabled: yes
@@ -123,29 +119,29 @@ app-layer:
     tftp:
       enabled: yes
     http2:
-      enabled: yes
+      enabled: yes                                        # Bật hỗ trợ HTTP/2
     quic:
-      enabled: yes
+      enabled: yes                                        # Bật hỗ trợ giao thức QUIC (UDP-based)
 
-default-rule-path: /var/lib/suricata/rules
+default-rule-path: /var/lib/suricata/rules                # Đường dẫn thư mục chứa các rule
 rule-files:
   - suricata.rules
 
-classification-file: /etc/suricata/classification.config
-reference-config-file: /etc/suricata/reference.config
+classification-file: /etc/suricata/classification.config  # File định nghĩa mức độ cảnh báo
+reference-config-file: /etc/suricata/reference.config     # File chứa liên kết tham khảo (CVE, SID, etc.)
 
-detect:
-  profile: medium
+detect:  # Cấu hình engine phát hiện
+  profile: medium                                         # Hồ sơ cân bằng giữa hiệu suất & độ chính xác
   custom-values:
-    toclient-groups: 3
-    toserver-groups: 25
-  sgh-mpm-context: auto
+    toclient-groups: 3                                    # Số nhóm kiểm tra với luồng về phía client
+    toserver-groups: 25                                   # Số nhóm kiểm tra với luồng về phía server
+  sgh-mpm-context: auto                                   # Tự động chọn MPM theo ngữ cảnh
   prefilter:
-    default: mpm
+    default: mpm                                          # Dùng phương pháp so khớp mẫu (multi pattern match)
   profiling:
-    rules-fast-pattern: yes
-    rules: yes
+    rules-fast-pattern: yes                               # Theo dõi hiệu quả so khớp fast_pattern
+    rules: yes                                            # Bật ghi hiệu suất của từng rule
 
-threading:
-  set-cpu-affinity: no
-  detect-thread-ratio: 1.0
+threading:  # Cấu hình đa luồng
+  set-cpu-affinity: no                                    # Không gán cố định luồng vào CPU
+  detect-thread-ratio: 1.0                                # 100% tài nguyên dành cho luồng phát hiện
