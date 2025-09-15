@@ -121,7 +121,9 @@ app-layer:  # Cấu hình xử lý các giao thức tầng ứng dụng
     http2:
       enabled: yes                                        # Bật hỗ trợ HTTP/2
     quic:
-      enabled: yes                                        # Bật hỗ trợ giao thức QUIC (UDP-based)
+      enabled: yes 
+    telnet:
+      enabled: yes
 
 default-rule-path: /var/lib/suricata/rules                # Đường dẫn thư mục chứa các rule
 rule-files:
