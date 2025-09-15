@@ -73,5 +73,26 @@ alert http any any -> any any (msg:"SQL Injection Boolean Pattern Detected (AND 
 #19. SMB ATACK ETERNALBLUE
 alert smb any any -> any 445 (msg:"ETERNALBLUE ATACK SMB ";content:"AAAAAAAAAA";nocase;flow:to_server,established;threshold:type threshold,track by_src,count 5, seconds 100;classtype:smb-buffer-overflow;sid:1000019;rev:1;priority:3;)
 
-#20.HTTP Request EXE File
+#20.HTTP Request
 alert http $HOME_NET any -> any any (msg:"Request Download exe File";http.method;content:"GET";http.uri;content:".exe";nocase;flow:to_server,established;classtype:trojan-activity;sid:1000020;rev:1;priority:1;)
+
+#21. ICMP anolmalies ( Phat hien goi tin ICMP voi kich thuoc bat thuong)
+alert icmp any any -> any any (msg:"ICMP anomlises";itype:8;dsize:>1000;sid:1000021;classtype:icmp-event;rev:1;priority:3;)
+#Canh bao alert doi voi phat hien goi tin ICMP gui den co kich thuoc lon hon 1000 bytes
+
+#22.DNS Tunneling
+alert dns any any -> any 53 (msg:"DNS Tunneling";dns.query;content:".com";pcre:"/([A-Za-z0-9\/+]{50,}={0,2})/";sid:1000022;rev:1;priority:3;)
+#Canh bao khi phat hien truy van DNS den domain co chua chuoi ma hoa BASE64,rules su dung pcre - bieu thuc chinh quy ( regrex)
+
+#23.HTTP Download exe
+alert http !$HOME_NET any -> $HOME_NET any (msg:"Download HTTP exe File";file.data;content:"MZ";depth:2;sid:1000023;rev:1;classtype:web-application-activity;priority:3;)
+#Phat canh bao doi voi hanh vi tai file cua client mang noi bo voi mang ben ngoai,doi voi FIle exe
+
+#24.Syn Flood
+alert tcp any any -> any any (msg:"Syn FLood Atack";flags:S;threshold:type both,track by_src,count 50,seconds 10;classtype:attempted-dos;sid:1000024;rev:1;priority:2;)
+#Phat canh bao doi voi 1 dia chi IP gui 50 goi tin mang co SYN trong 10s den port 80 cua may dich
+
+
+#25.Telnet Detected Login
+alert telnet any any -> any any (msg:"[TELNET] Detected Login Prompt (telnet parser)"; flow:established,to_client; content:"login:"; nocase; sid:1000027; rev:1;)
+#Phat hien nguoi dung dang nhap vao thiet bi khac thong qua giao thuc telnet
