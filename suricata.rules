@@ -1,98 +1,58 @@
-# 1. ICMP Echo Request
-alert icmp any any -> any any (msg:"ICMP Echo Request Detected"; itype:8; classtype:icmp-event; sid:1000001; rev:1;)
-#Goi tin ICMP(ping) den tu bat ki src_ip_port den bat ki des_ip_port , khop rules khi type==8
 
-# 2. ICMP Echo Reply
-alert icmp any any -> any any (msg:"ICMP Echo Reply Detected"; itype:0; classtype:icmp-event; sid:1000002; rev:1;)
-#Goi tin ICMP(ping) tu bat ki src_ip_port nao den bat ki des_ip_port day,khop rule khi type=0
-
-# 3. DNS Query
-alert udp any any -> any 53 (msg:"[ALERT] DNS truy vấn bất thường (>=10 lần/15s từ 1 IP)"; dns_query; content:"."; threshold:type threshold, track by_src, count 10, seconds 15; classtype:trojan-activity; sid:1004001; rev:3;)
-#Goi tin di tu src_ip_port bat ki den des_ip_port 53, khop rule khi phat hien 1 may gui tren 1o truy van dns/15s
-
-# 4. HTTP GET Request
-alert http any any -> any any (msg:"[ALERT] HTTP GET Flood from Source (>=100 in 30s)"; flow:established,to_server; content:"GET"; http_method; threshold:type threshold, track by_src, count 100, seconds 30; classtype:attempted-dos; sid:2000001; rev:2;)
-# Phát hiện 1 máy client gửi >=100 GET requests trong 30 giây → nghi vấn HTTP Flood
-
-# 5. SQLMap User-Agent
-alert http any any -> any any (msg:"Possible SQL Injection Attempt (sqlmap)"; flow:to_server,established; content:"sqlmap"; http_user_agent; nocase; classtype:web-application-attack; sid:1000005; rev:2;)
-#Goi tin co the den tu src_ip_port bat ki den des_ip_port bat ki , chi xet flow tu client den server, tim chuoi "sqlmap" trong user_agent,ko phan biet"sqlmap" la hoa hay thuong
-
-# 6. FTP Login Attempt
-alert tcp any any -> any 21 (msg:"FTP Login Attempt"; flow:to_server,established; content:"USER "; nocase; classtype:attempted-admin; sid:1000006; rev:1;)
-#GOi tin FTP tu src_ip_port bat ku den des_ip co port 21 , chi xet flow tu client den server , goi tin chua noi dung user , khong phan biet hoa thuong,phat hien ai co gang dang nhap
-
-# 7. SMTP HELO Command
-alert tcp any any -> any 25 (msg:"SMTP HELO Command Detected"; content:"HELO"; nocase; classtype:protocol-command-decode; sid:1000007; rev:1;)
-#Goi tin TCP tu src_ip_port bat ki den des_ip_port 25 , goi tin co noi dung "Hello" khong phan biet hoa thuong->Phat hien 1 client dang chao hoi 1 may chu email
-
-# 8. TLS Client Hello
-alert tls $HOME_NET any -> !$HOME_NET any (msg:"[INFO] TLS Client Hello Detected"; threshold:type limit, track by_src, count 1, seconds 300; classtype:protocol-command-decode; sid:1000008; rev:4;)
-#Goi tin gui tu src_ip_port bat ki den des_ip_port bat ki muc dich nhan dien ket noi HTTPS, chi alert ip noi bo 1 lan / 5 phut 
-
-# 9. SMB Access
-alert tcp any any -> any 445 (msg:"SMB Protocol Access Detected"; classtype:protocol-command-decode; sid:1000009; rev:2;)
-#Goi tin gui tu src_ip_port bat ki den des_ip_port 445 ->Phat hien co truy cap vao dich vu truy se file cua windows
-
-# 10. SSH Brute Force
-alert tcp any any -> any 22 (msg:"SSH Brute Force Attempt"; flow:to_server,established; threshold:type threshold, track by_src, count 5, seconds 30; classtype:attempted-admin; sid:1000010; rev:1;)
-#Goi tin co the gui src_ip_port bat ki den des_ip_port 22, nham phat hien client dang co gang dang nhap nhieu lan de do mat khau thong qua SSH , truy cap 5 lan trong 30s ->alert
-
-# 11. Slowloris DoS
-alert http any any -> any $HTTP_PORTS (msg:"Possible Slowloris DoS Attack Detected"; flow:established,to_server; content:"GET"; http_method; threshold:type both, track by_src, count 10, seconds 60; classtype:denial-of-service; sid:1000011; rev:1;)
-#GOi tin HTTP tu src_ip_port bat ki den des_ip_port(tap hop port HTTP),chi xet luong tu client ->server , co noi  dung GET khong phan biet hoa thuong,phat hien khi co 10 yeu cau GET trong 60s
-
-# 12. UDP Flood
-alert udp any any -> any any (msg:"[TEST] UDP Flood Detected"; flow:to_server;detection_filter: track by_dst, count 10, seconds 5; classtype:denial-of-service; sid:1009012; rev:1;)
-#Goi tin UDP tu src_ip_port nay den src_ip_port khac, chi xet luong tu client->server,phat hien khi co 10 goi UDP gui tu 1 client trong 5s
-
-# 13. SYN Flood
-alert tcp any any -> any any (msg:"Possible SYN Flood DoS Detected"; flags:S; threshold:type both, track by_src, count 50, seconds 10; classtype:denial-of-service; sid:1000013; rev:1;)
-#Goi tin TCP gui tu src_ip_port bat ki den des_ip_port bat ki , gui goi SYN nhung ma khong bao gio hoan tat(tuc la trong buoc 3 cua TCP handshake,client phai gui lai goi ACK de confim ket noi , phat hien neu co 50 goi SYn duoc gui trong 10s tu1 IP
-
-# 14. HTTP Flood
-alert http any any -> $HTTP_SERVERS any (msg:"[ALERT] HTTP GET Flood to Destination (>=200 in 30s)"; flow:established,to_server; content:"GET"; http_method; threshold:type threshold, track by_dst, count 200, seconds 30; classtype:attempted-dos; sid:2000002; rev:2;)
-# Phát hiện 1 server nhận >=200 GET requests trong 30 giây → nghi vấn bị HTTP Flood
-
-# 15. SQLi: CASE WHEN in URI
-alert http any any -> any any (msg:"SQL Injection Detected in URL (CASE WHEN)"; flow:to_server,established; content:"CASE WHEN"; http_uri; nocase; classtype:web-application-attack; sid:1000015; rev:3;)
-#Goi tin http gui tu src_ip_port bat ki den des_ip_port bat ki , tim kiem cum tu "CASE WHEN" trong URL ma nguoi dung gui den, 
-
-# 16. SQLi: UNION SELECT in URI
-alert http any any -> any any (msg:"SQL Injection via UNION SELECT in raw URL"; flow:to_server,established; content:"UNION"; nocase; http_raw_uri; content:"SELECT"; nocase; http_raw_uri; classtype:web-application-attack; sid:1000016; rev:5;)
-#Goi tin http gui tu 1 src_ip_port den des_ip_port bat ki , muc dich tim kiem su xuat hien dong thoi cua cum tu "UNION" va "SELECT" trong dia chi URL ma nguoi dung gui den 
-
-# 17. SQLi: AND = in URI
-alert http any any -> any any (msg:"SQL Injection Logic Pattern Detected (AND =)"; flow:to_server,established; content:"AND ="; http_uri; nocase; classtype:web-application-attack; sid:1000017; rev:2;)
-#Goi http gui tu 1 src_ip_port bat ki den des_ip+port bat ki , tim kiem chuoi ki tu "AND" trong URL khong phan biet hoa thuong , VD: AND 1=2 ->Thu voi dieu kien luon sai -> CO the hien thi loi trang web
-
-# 18. SQLi: AND 'A'='A' in URI
-alert http any any -> any any (msg:"SQL Injection Boolean Pattern Detected (AND 'A'='A')"; flow:to_server,established; content:"AND 'A'='A'"; http_uri; nocase; classtype:web-application-attack; sid:1000018; rev:2;)
-#Goi tin http gui tu 1 src_ip_port den des_ip_port bat ki , tim kiem chinh xac chuoi ký tự "AND 'A'='A'" trong URL , khong phan biet hoa thuong
-
-#19. SMB ATACK ETERNALBLUE
-alert smb any any -> any 445 (msg:"ETERNALBLUE ATACK SMB ";content:"AAAAAAAAAA";nocase;flow:to_server,established;threshold:type threshold,track by_src,count 5, seconds 100;classtype:smb-buffer-overflow;sid:1000019;rev:1;priority:3;)
-
-#20.HTTP Request
-alert http $HOME_NET any -> any any (msg:"Request Download exe File";http.method;content:"GET";http.uri;content:".exe";nocase;flow:to_server,established;classtype:trojan-activity;sid:1000020;rev:1;priority:1;)
-
-#21. ICMP anolmalies ( Phat hien goi tin ICMP voi kich thuoc bat thuong)
-alert icmp any any -> any any (msg:"ICMP anomlises";itype:8;dsize:>1000;sid:1000021;classtype:icmp-event;rev:1;priority:3;)
-#Canh bao alert doi voi phat hien goi tin ICMP gui den co kich thuoc lon hon 1000 bytes
-
-#22.DNS Tunneling
-alert dns any any -> any 53 (msg:"DNS Tunneling";dns.query;content:".com";pcre:"/([A-Za-z0-9\/+]{50,}={0,2})/";sid:1000022;rev:1;priority:3;)
-#Canh bao khi phat hien truy van DNS den domain co chua chuoi ma hoa BASE64,rules su dung pcre - bieu thuc chinh quy ( regrex)
-
-#23.HTTP Download exe
-alert http !$HOME_NET any -> $HOME_NET any (msg:"Download HTTP exe File";file.data;content:"MZ";depth:2;sid:1000023;rev:1;classtype:web-application-activity;priority:3;)
-#Phat canh bao doi voi hanh vi tai file cua client mang noi bo voi mang ben ngoai,doi voi FIle exe
-
-#24.Syn Flood
-alert tcp any any -> any any (msg:"Syn FLood Atack";flags:S;threshold:type both,track by_src,count 50,seconds 10;classtype:attempted-dos;sid:1000024;rev:1;priority:2;)
-#Phat canh bao doi voi 1 dia chi IP gui 50 goi tin mang co SYN trong 10s den port 80 cua may dich
+alert icmp any any -> any any (msg:"ICMP Echo Request Detected"; itype:8; sid:1000001; rev:1; classtype:icmp-event; priority:3;)
+alert icmp any any -> any any (msg:"ICMP Echo Reply Detected"; itype:0; sid:1000002; rev:1; classtype:icmp-event; priority:3;)
+alert udp any any -> any 53 (msg:"DNS Query Detected"; dns.query; sid:1000003; rev:1; classtype:dns-query; priority:3;)
+alert http any any -> any any (msg:"HTTP GET Request Detected"; flow:to_server,established; http.method; content:"GET"; sid:1000004; rev:1; classtype:protocol-command-decode; priority:3;)
+alert http any any -> any any (msg:"HTTP POST Request Detected"; flow:to_server,established; http.method; content:"POST"; sid:1000005; rev:1; classtype:protocol-command-decode; priority:3;)
+alert http any any -> any any (msg:"HTTP User-Agent contains curl"; flow:to_server,established; http.user_agent; content:"curl"; nocase; sid:1000006; rev:1; classtype:policy-violation; priority:3;)
+alert http any any -> any any (msg:"HTTP URI contains login"; flow:to_server,established; http.uri; content:"login"; nocase; sid:1000007; rev:1; classtype:web-application-activity; priority:3;)
+alert udp any any -> any 53 (msg:"DNS Query for example.com"; dns.query; content:"example.com"; sid:1000008; rev:1; classtype:dns-query; priority:3;)
+alert tcp any any -> any 21 (msg:"FTP USER Command Detected"; flow:to_server,established; content:"USER "; nocase; sid:1000009; rev:1; classtype:attempted-admin; priority:3;)
+alert tcp any any -> any 22 (msg:"SSH Connection Attempt"; sid:1000010; rev:1; classtype:protocol-command-decode; priority:3;)
 
 
-#25.Telnet Detected Login
-alert telnet any any -> any any (msg:"[TELNET] Detected Login Prompt (telnet parser)"; flow:established,to_client; content:"login:"; nocase; sid:1000027; rev:1;)
-#Phat hien nguoi dung dang nhap vao thiet bi khac thong qua giao thuc telnet
+alert http any any -> any any (msg:"HTTP Response 404 Not Found"; flow:to_client,established; content:"404"; http.stat_code; sid:1000011; rev:1; classtype:protocol-command-decode; priority:3;)
+alert dns any any -> any 53 (msg:"DNS Query Type TXT"; dns.query; dns.qtype:16; sid:1000012; rev:1; classtype:dns-query; priority:3;)
+alert http any any -> any any (msg:"HTTP URI contains .php"; flow:to_server,established; http.uri; content:".php"; nocase; sid:1000013; rev:1; classtype:web-application-activity; priority:3;)
+alert http any any -> any any (msg:"URI contains admin/root pattern"; flow:to_server,established; pcre:"/(admin|root)/Ui"; http.uri; sid:1000014; rev:1; classtype:web-application-activity; priority:3;)
+alert icmp any any -> any any (msg:"ICMP Flood (10 in 5s)"; detection_filter:track by_src, count 10, seconds 5; sid:1000015; rev:1; classtype:attempted-dos; priority:2;)
+alert http any any -> any any (msg:"HTTP Header contains Authorization"; flow:to_server,established; http.header; content:"Authorization"; nocase; sid:1000016; rev:1; classtype:policy-violation; priority:3;)
+alert http any any -> any any (msg:"SQLMap User-Agent Detected"; flow:to_server,established; http.user_agent; content:"sqlmap"; nocase; sid:1000017; rev:1; classtype:web-application-attack; priority:2;)
+alert tcp any any -> any 21 (msg:"FTP Login Attempt Detected"; flow:to_server,established; content:"USER "; nocase; sid:1000018; rev:1; classtype:attempted-admin; priority:3;)
+alert tcp any any -> any 25 (msg:"SMTP HELO Command Detected"; content:"HELO"; nocase; sid:1000019; rev:1; classtype:protocol-command-decode; priority:3;)
+alert tls any any -> any any (msg:"TLS Client Hello Detected"; threshold:type limit, track by_src, count 1, seconds 300; sid:1000020; rev:1; classtype:protocol-command-decode; priority:3;)
+
+
+alert tcp any any -> any 445 (msg:"SMB Protocol Access Detected"; sid:1000021; rev:1; classtype:protocol-command-decode; priority:3;)
+alert tcp any any -> any 22 (msg:"SSH Brute Force Attempt"; flow:to_server,established; threshold:type threshold, track by_src, count 5, seconds 30; sid:1000022; rev:1; classtype:attempted-admin; priority:2;)
+alert http any any -> any any (msg:"Possible Slowloris DoS Attack"; flow:established,to_server; http.method; content:"GET"; threshold:type both, track by_src, count 10, seconds 60; sid:1000023; rev:1; classtype:denial-of-service; priority:2;)
+alert udp any any -> any any (msg:"UDP Flood Detected"; flow:to_server; detection_filter:track by_dst, count 10, seconds 5; sid:1000024; rev:1; classtype:denial-of-service; priority:2;)
+alert tcp any any -> any any (msg:"SYN Flood Detected"; flags:S; threshold:type both, track by_src, count 50, seconds 10; sid:1000025; rev:1; classtype:denial-of-service; priority:2;)
+alert http any any -> $HTTP_SERVERS any (msg:"HTTP GET Flood to Server (>=200/30s)"; flow:established,to_server; http.method; content:"GET"; threshold:type threshold, track by_dst, count 200, seconds 30; sid:1000026; rev:1; classtype:attempted-dos; priority:2;)
+alert http any any -> any any (msg:"SQL Injection Detected (CASE WHEN)"; flow:to_server,established; http.uri; content:"CASE WHEN"; nocase; sid:1000027; rev:1; classtype:web-application-attack; priority:1;)
+alert http any any -> any any (msg:"SQL Injection Detected (UNION SELECT)"; flow:to_server,established; http.raw_uri; content:"UNION"; nocase; http.raw_uri; content:"SELECT"; nocase; sid:1000028; rev:1; classtype:web-application-attack; priority:1;)
+alert http any any -> any any (msg:"SQL Injection Detected (AND =)"; flow:to_server,established; http.uri; content:"AND ="; nocase; sid:1000029; rev:1; classtype:web-application-attack; priority:1;)
+alert http any any -> any any (msg:"SQL Injection Boolean Pattern (AND 'A'='A')"; flow:to_server,established; http.uri; content:"AND 'A'='A'"; nocase; sid:1000030; rev:1; classtype:web-application-attack; priority:1;)
+
+alert smb any any -> any 445 (msg:"ETERNALBLUE SMB Exploit Attempt"; content:"AAAAAAAAAA"; nocase; flow:to_server,established; threshold:type threshold, track by_src, count 5, seconds 100; sid:1000031; rev:1; classtype:smb-buffer-overflow; priority:1;)
+alert http $HOME_NET any -> any any (msg:"HTTP Request Downloading .exe"; flow:to_server,established; http.method; content:"GET"; http.uri; content:".exe"; nocase; sid:1000032; rev:1; classtype:trojan-activity; priority:1;)
+alert icmp any any -> any any (msg:"ICMP Anomaly - Oversized Packet (>1000 bytes)"; itype:8; dsize:>1000; sid:1000033; rev:1; classtype:icmp-event; priority:3;)
+alert dns any any -> any 53 (msg:"DNS Tunneling Suspected (Base64 pattern)"; dns.query; content:".com"; pcre:"/([A-Za-z0-9\/+]{50,}={0,2})/"; sid:1000034; rev:1; classtype:bad-unknown; priority:2;)
+alert http !$HOME_NET any -> $HOME_NET any (msg:"HTTP File Download Executable (MZ Header)"; file.data; content:"MZ"; depth:2; sid:1000035; rev:1; classtype:web-application-activity; priority:2;)
+alert telnet any any -> any any (msg:"TELNET Detected Login Prompt"; flow:established,to_client; content:"login:"; nocase; sid:1000036; rev:1; classtype:attempted-admin; priority:3;)
+alert tcp any any -> any any (msg:"Command Injection Attempt (| whoami or ; id)"; flow:to_server,established; content:"| whoami"; nocase; sid:1000037; rev:1; classtype:web-application-attack; priority:1;)
+alert http any any -> any any (msg:"LFI Attempt Detected (../../etc/passwd)"; flow:to_server,established; http.uri; content:"../../etc/passwd"; nocase; sid:1000038; rev:1; classtype:web-application-attack; priority:1;)
+alert dns any any -> any 53 (msg:"DNS Query Domain too long (>50 chars)"; dns.query; pcre:"/.{50,}/"; sid:1000039; rev:1; classtype:dns-query; priority:3;)
+alert http any any -> any any (msg:"HTTP Header Contains Base64 Encoded cmd.exe"; file.data; content:"Y21kLmV4ZQ=="; sid:1000040; rev:1; classtype:trojan-activity; priority:2;)
+
+
+alert http any any -> any any (msg:"Suspicious Admin Login from External IP"; flow:to_server,established; http.uri; content:"/admin"; nocase; not_src:$HOME_NET; sid:1000041; rev:1; classtype:attempted-admin; priority:1;)
+alert http any any -> any any (msg:"Access to .onion Domain"; http.host; content:".onion"; nocase; sid:1000042; rev:1; classtype:policy-violation; priority:2;)
+alert http any any -> any any (msg:"Access to Suspicious Keyword 'hacker' in URL"; http.uri; content:"hacker"; nocase; sid:1000043; rev:1; classtype:web-application-activity; priority:3;)
+alert http any any -> any any (msg:"Download File with Content-Type application/x-msdownload"; flow:to_client,established; http.header; content:"application/x-msdownload"; nocase; sid:1000044; rev:1; classtype:trojan-activity; priority:2;)
+alert dns any any -> any 53 (msg:"DNS Response Contains Localhost IP (127.0.0.1)"; dns.answer; content:"\x7F\x00\x00\x01"; sid:1000045; rev:1; classtype:bad-unknown; priority:3;)
+alert tls any any -> any any (msg:"TLS ClientHello SNI Contains 'malware'"; tls.sni; content:"malware"; nocase; sid:1000046; rev:1; classtype:bad-unknown; priority:2;)
+alert tcp any any -> any 3389 (msg:"RDP Brute Force Detected"; detection_filter:track by_src, count 10, seconds 30; sid:1000047; rev:1; classtype:attempted-admin; priority:2;)
+alert smb any any -> any 445 (msg:"SMB Access to Sensitive File secret.docx"; file.name; content:"secret.docx"; sid:1000048; rev:1; classtype:smb-file-access; priority:2;)
+alert http any any -> any any (msg:"HTTP Download ZIP File"; http.uri; content:".zip"; nocase; sid:1000049; rev:1; classtype:web-application-activity; priority:3;)
+alert http any any -> any any (msg:"HTTP User-Agent Botnet Pattern python-requests"; http.user_agent; content:"python-requests"; nocase; sid:1000050; rev:1; classtype:trojan-activity; priority:2;)
