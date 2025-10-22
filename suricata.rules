@@ -1,58 +1,149 @@
-
 alert icmp any any -> any any (msg:"ICMP Echo Request Detected"; itype:8; sid:1000001; rev:1; classtype:icmp-event; priority:3;)
-alert icmp any any -> any any (msg:"ICMP Echo Reply Detected"; itype:0; sid:1000002; rev:1; classtype:icmp-event; priority:3;)
-alert udp any any -> any 53 (msg:"DNS Query Detected"; dns.query; sid:1000003; rev:1; classtype:dns-query; priority:3;)
-alert http any any -> any any (msg:"HTTP GET Request Detected"; flow:to_server,established; http.method; content:"GET"; sid:1000004; rev:1; classtype:protocol-command-decode; priority:3;)
-alert http any any -> any any (msg:"HTTP POST Request Detected"; flow:to_server,established; http.method; content:"POST"; sid:1000005; rev:1; classtype:protocol-command-decode; priority:3;)
-alert http any any -> any any (msg:"HTTP User-Agent contains curl"; flow:to_server,established; http.user_agent; content:"curl"; nocase; sid:1000006; rev:1; classtype:policy-violation; priority:3;)
-alert http any any -> any any (msg:"HTTP URI contains login"; flow:to_server,established; http.uri; content:"login"; nocase; sid:1000007; rev:1; classtype:web-application-activity; priority:3;)
-alert udp any any -> any 53 (msg:"DNS Query for example.com"; dns.query; content:"example.com"; sid:1000008; rev:1; classtype:dns-query; priority:3;)
-alert tcp any any -> any 21 (msg:"FTP USER Command Detected"; flow:to_server,established; content:"USER "; nocase; sid:1000009; rev:1; classtype:attempted-admin; priority:3;)
-alert tcp any any -> any 22 (msg:"SSH Connection Attempt"; sid:1000010; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện gói ICMP Echo Request (ping request, itype=8).
 
+alert icmp any any -> any any (msg:"ICMP Echo Reply Detected"; itype:0; sid:1000002; rev:1; classtype:icmp-event; priority:3;)
+# Rule phát hiện gói ICMP Echo Reply (ping reply, itype=0).
+
+alert udp any any -> any 53 (msg:"DNS Query Detected"; dns.query; sid:1000003; rev:1; classtype:dns-query; priority:3;)
+# Rule phát hiện truy vấn DNS (UDP tới cổng 53).
+
+alert http any any -> $HTTP_SERVER 80 (msg:"HTTP GET Request Detected"; flow:to_server,established; http.method; content:"GET"; sid:1000004; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện HTTP request phương thức GET gửi tới máy chủ HTTP.
+
+alert http any any -> $HTTP_SERVER 80 (msg:"HTTP POST Request Detected"; flow:to_server,established; http.method; content:"POST"; sid:1000005; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện HTTP request phương thức POST gửi tới máy chủ HTTP.
+
+alert http any any -> $HTTP_SERVER 80 (msg:"HTTP User-Agent contains curl"; flow:to_server,established; http.user_agent; content:"curl"; nocase; sid:1000006; rev:1; classtype:policy-violation; priority:3;)
+# Rule phát hiện HTTP request có User-Agent chứa chuỗi "curl" (thường dùng trong scripting).
+
+alert http any any -> $HTTP_SERVER 80 (msg:"HTTP URI contains login"; flow:to_server,established; http.uri; content:"login"; nocase; sid:1000007; rev:1; classtype:web-application-activity; priority:3;)
+# Rule phát hiện URI chứa từ "login" (thường là trang đăng nhập).
+
+alert udp any any -> any 53 (msg:"DNS Query for example.com"; dns.query; content:"example.com"; sid:1000008; rev:1; classtype:dns-query; priority:3;)
+# Rule phát hiện truy vấn DNS tới domain "example.com".
+
+alert tcp any any -> any 21 (msg:"FTP USER Command Detected"; flow:to_server,established; content:"USER "; nocase; sid:1000009; rev:1; classtype:attempted-admin; priority:3;)
+# Rule phát hiện lệnh USER trong FTP (giai đoạn xác thực username).
+
+alert tcp any any -> any 22 (msg:"SSH Connection Attempt"; sid:1000010; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule cảnh báo khi có kết nối TCP đến cổng 22 (SSH) — phát hiện kết nối SSH cơ bản.
 
 alert http any any -> any any (msg:"HTTP Response 404 Not Found"; flow:to_client,established; content:"404"; http.stat_code; sid:1000011; rev:1; classtype:protocol-command-decode; priority:3;)
-alert dns any any -> any 53 (msg:"DNS Query Type TXT"; dns.query; dns.qtype:16; sid:1000012; rev:1; classtype:dns-query; priority:3;)
-alert http any any -> any any (msg:"HTTP URI contains .php"; flow:to_server,established; http.uri; content:".php"; nocase; sid:1000013; rev:1; classtype:web-application-activity; priority:3;)
-alert http any any -> any any (msg:"URI contains admin/root pattern"; flow:to_server,established; pcre:"/(admin|root)/Ui"; http.uri; sid:1000014; rev:1; classtype:web-application-activity; priority:3;)
-alert icmp any any -> any any (msg:"ICMP Flood (10 in 5s)"; detection_filter:track by_src, count 10, seconds 5; sid:1000015; rev:1; classtype:attempted-dos; priority:2;)
-alert http any any -> any any (msg:"HTTP Header contains Authorization"; flow:to_server,established; http.header; content:"Authorization"; nocase; sid:1000016; rev:1; classtype:policy-violation; priority:3;)
-alert http any any -> any any (msg:"SQLMap User-Agent Detected"; flow:to_server,established; http.user_agent; content:"sqlmap"; nocase; sid:1000017; rev:1; classtype:web-application-attack; priority:2;)
-alert tcp any any -> any 21 (msg:"FTP Login Attempt Detected"; flow:to_server,established; content:"USER "; nocase; sid:1000018; rev:1; classtype:attempted-admin; priority:3;)
-alert tcp any any -> any 25 (msg:"SMTP HELO Command Detected"; content:"HELO"; nocase; sid:1000019; rev:1; classtype:protocol-command-decode; priority:3;)
-alert tls any any -> any any (msg:"TLS Client Hello Detected"; threshold:type limit, track by_src, count 1, seconds 300; sid:1000020; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện HTTP response mã 404 (Not Found).
 
+alert dns any any -> any 53 (msg:"DNS Query Type TXT"; dns.query; dns.qtype:16; sid:1000012; rev:1; classtype:dns-query; priority:3;)
+# Rule phát hiện truy vấn DNS loại TXT (qtype 16).
+
+alert http any any -> any any (msg:"HTTP URI contains .php"; flow:to_server,established; http.uri; content:".php"; nocase; sid:1000013; rev:1; classtype:web-application-activity; priority:3;)
+# Rule phát hiện URI có chứa ".php" (truy cập trang PHP).
+
+alert http any any -> any any (msg:"URI contains admin/root pattern"; flow:to_server,established; pcre:"/(admin|root)/Ui"; http.uri; sid:1000014; rev:1; classtype:web-application-activity; priority:3;)
+# Rule phát hiện URI chứa các từ "admin" hoặc "root" (truy cập chức năng quản trị).
+
+alert icmp any any -> any any (msg:"ICMP Flood (10 in 5s)"; detection_filter:track by_src, count 10, seconds 5; sid:1000015; rev:1; classtype:attempted-dos; priority:2;)
+# Rule phát hiện ICMP flood từ một nguồn (>=10 gói trong 5 giây).
+
+alert http any any -> any any (msg:"HTTP Header contains Authorization"; flow:to_server,established; http.header; content:"Authorization"; nocase; sid:1000016; rev:1; classtype:policy-violation; priority:3;)
+# Rule phát hiện header HTTP chứa "Authorization" (có thể là API key / token).
+
+alert http any any -> any any (msg:"SQLMap User-Agent Detected"; flow:to_server,established; http.user_agent; content:"sqlmap"; nocase; sid:1000017; rev:1; classtype:web-application-attack; priority:2;)
+# Rule phát hiện User-Agent của công cụ sqlmap (dấu hiệu quét/SQLi tự động).
+
+alert tcp any any -> any 21 (msg:"FTP Login Attempt Detected"; flow:to_server,established; content:"USER "; nocase; sid:1000018; rev:1; classtype:attempted-admin; priority:3;)
+# Rule phát hiện nỗ lực đăng nhập FTP (tương tự rule USER trước).
+
+alert tcp any any -> any 25 (msg:"SMTP HELO Command Detected"; content:"HELO"; nocase; sid:1000019; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện lệnh HELO trong giao tiếp SMTP.
+
+alert tls any any -> any any (msg:"TLS Client Hello Detected"; threshold:type limit, track by_src, count 1, seconds 300; sid:1000020; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện TLS ClientHello (giới hạn 1 lần/300s theo source để tránh quá nhiều cảnh báo).
 
 alert tcp any any -> any 445 (msg:"SMB Protocol Access Detected"; sid:1000021; rev:1; classtype:protocol-command-decode; priority:3;)
+# Rule phát hiện kết nối TCP tới cổng 445 (SMB).
+
 alert tcp any any -> any 22 (msg:"SSH Brute Force Attempt"; flow:to_server,established; threshold:type threshold, track by_src, count 5, seconds 30; sid:1000022; rev:1; classtype:attempted-admin; priority:2;)
+# Rule phát hiện khả năng SSH brute-force (>=5 kết nối/30s từ cùng source).
+
 alert http any any -> any any (msg:"Possible Slowloris DoS Attack"; flow:established,to_server; http.method; content:"GET"; threshold:type both, track by_src, count 10, seconds 60; sid:1000023; rev:1; classtype:denial-of-service; priority:2;)
+# Rule nghi ngờ Slowloris (nhiều GET giữ kết nối mở từ cùng source).
+
 alert udp any any -> any any (msg:"UDP Flood Detected"; flow:to_server; detection_filter:track by_dst, count 10, seconds 5; sid:1000024; rev:1; classtype:denial-of-service; priority:2;)
+# Rule phát hiện UDP flood nhắm tới đích (>=10 gói/5s theo dest).
+
 alert tcp any any -> any any (msg:"SYN Flood Detected"; flags:S; threshold:type both, track by_src, count 50, seconds 10; sid:1000025; rev:1; classtype:denial-of-service; priority:2;)
+# Rule phát hiện SYN flood (nhiều gói SYN từ cùng source).
+
 alert http any any -> $HTTP_SERVERS any (msg:"HTTP GET Flood to Server (>=200/30s)"; flow:established,to_server; http.method; content:"GET"; threshold:type threshold, track by_dst, count 200, seconds 30; sid:1000026; rev:1; classtype:attempted-dos; priority:2;)
+# Rule phát hiện HTTP GET flood tới server (>=200 GET trong 30s theo dest).
+
 alert http any any -> any any (msg:"SQL Injection Detected (CASE WHEN)"; flow:to_server,established; http.uri; content:"CASE WHEN"; nocase; sid:1000027; rev:1; classtype:web-application-attack; priority:1;)
+# Rule phát hiện dấu hiệu SQLi chứa "CASE WHEN" trong URI.
+
 alert http any any -> any any (msg:"SQL Injection Detected (UNION SELECT)"; flow:to_server,established; http.raw_uri; content:"UNION"; nocase; http.raw_uri; content:"SELECT"; nocase; sid:1000028; rev:1; classtype:web-application-attack; priority:1;)
+# Rule phát hiện mẫu SQLi "UNION SELECT" trong raw URI.
+
 alert http any any -> any any (msg:"SQL Injection Detected (AND =)"; flow:to_server,established; http.uri; content:"AND ="; nocase; sid:1000029; rev:1; classtype:web-application-attack; priority:1;)
+# Rule phát hiện mẫu SQLi chứa "AND =" trong URI (dấu hiệu payload boolean).
+
 alert http any any -> any any (msg:"SQL Injection Boolean Pattern (AND 'A'='A')"; flow:to_server,established; http.uri; content:"AND 'A'='A'"; nocase; sid:1000030; rev:1; classtype:web-application-attack; priority:1;)
+# Rule phát hiện pattern boolean SQLi "AND 'A'='A'".
 
 alert smb any any -> any 445 (msg:"ETERNALBLUE SMB Exploit Attempt"; content:"AAAAAAAAAA"; nocase; flow:to_server,established; threshold:type threshold, track by_src, count 5, seconds 100; sid:1000031; rev:1; classtype:smb-buffer-overflow; priority:1;)
-alert http $HOME_NET any -> any any (msg:"HTTP Request Downloading .exe"; flow:to_server,established; http.method; content:"GET"; http.uri; content:".exe"; nocase; sid:1000032; rev:1; classtype:trojan-activity; priority:1;)
-alert icmp any any -> any any (msg:"ICMP Anomaly - Oversized Packet (>1000 bytes)"; itype:8; dsize:>1000; sid:1000033; rev:1; classtype:icmp-event; priority:3;)
-alert dns any any -> any 53 (msg:"DNS Tunneling Suspected (Base64 pattern)"; dns.query; content:".com"; pcre:"/([A-Za-z0-9\/+]{50,}={0,2})/"; sid:1000034; rev:1; classtype:bad-unknown; priority:2;)
-alert http !$HOME_NET any -> $HOME_NET any (msg:"HTTP File Download Executable (MZ Header)"; file.data; content:"MZ"; depth:2; sid:1000035; rev:1; classtype:web-application-activity; priority:2;)
-alert telnet any any -> any any (msg:"TELNET Detected Login Prompt"; flow:established,to_client; content:"login:"; nocase; sid:1000036; rev:1; classtype:attempted-admin; priority:3;)
-alert tcp any any -> any any (msg:"Command Injection Attempt (| whoami or ; id)"; flow:to_server,established; content:"| whoami"; nocase; sid:1000037; rev:1; classtype:web-application-attack; priority:1;)
-alert http any any -> any any (msg:"LFI Attempt Detected (../../etc/passwd)"; flow:to_server,established; http.uri; content:"../../etc/passwd"; nocase; sid:1000038; rev:1; classtype:web-application-attack; priority:1;)
-alert dns any any -> any 53 (msg:"DNS Query Domain too long (>50 chars)"; dns.query; pcre:"/.{50,}/"; sid:1000039; rev:1; classtype:dns-query; priority:3;)
-alert http any any -> any any (msg:"HTTP Header Contains Base64 Encoded cmd.exe"; file.data; content:"Y21kLmV4ZQ=="; sid:1000040; rev:1; classtype:trojan-activity; priority:2;)
+# Rule giả lập phát hiện payload exploit SMB (ví dụ chuỗi 'A' lặp) — cần điều chỉnh cụ thể cho exploit thực tế.
 
+alert http $HOME_NET any -> any any (msg:"HTTP Request Downloading .exe"; flow:to_server,established; http.method; content:"GET"; http.uri; content:".exe"; nocase; sid:1000032; rev:1; classtype:trojan-activity; priority:1;)
+# Rule phát hiện request tải file .exe từ mạng nội bộ ($HOME_NET).
+
+alert icmp any any -> any any (msg:"ICMP Anomaly - Oversized Packet (>1000 bytes)"; itype:8; dsize:>1000; sid:1000033; rev:1; classtype:icmp-event; priority:3;)
+# Rule phát hiện gói ICMP Echo Request có kích thước lớn hơn 1000 bytes (bất thường).
+
+alert dns any any -> any 53 (msg:"DNS Tunneling Suspected (Base64 pattern)"; dns.query; content:".com"; pcre:"/([A-Za-z0-9\/+]{50,}={0,2})/"; sid:1000034; rev:1; classtype:bad-unknown; priority:2;)
+# Rule nghi ngờ DNS tunneling nếu query chứa chuỗi giống Base64 dài (pattern).
+
+alert http !$HOME_NET any -> $HOME_NET any (msg:"HTTP File Download Executable (MZ Header)"; file.data; content:"MZ"; depth:2; sid:1000035; rev:1; classtype:web-application-activity; priority:2;)
+# Rule phát hiện file exe (MZ header) được tải về $HOME_NET từ mạng ngoài.
+
+alert telnet any any -> any any (msg:"TELNET Detected Login Prompt"; flow:established,to_client; content:"login:"; nocase; sid:1000036; rev:1; classtype:attempted-admin; priority:3;)
+# Rule phát hiện prompt "login:" khi dùng Telnet (có thể là đăng nhập tương tác).
+
+alert tcp any any -> any any (msg:"Command Injection Attempt (| whoami or ; id)"; flow:to_server,established; content:"| whoami"; nocase; sid:1000037; rev:1; classtype:web-application-attack; priority:1;)
+# Rule phát hiện dấu hiệu tấn công command injection chứa chuỗi "| whoami" (cần mở rộng phát hiện).
+
+alert http any any -> any any (msg:"LFI Attempt Detected (../../etc/passwd)"; flow:to_server,established; http.uri; content:"../../etc/passwd"; nocase; sid:1000038; rev:1; classtype:web-application-attack; priority:1;)
+# Rule phát hiện cố gắng LFI truy cập file /etc/passwd.
+
+alert dns any any -> any 53 (msg:"DNS Query Domain too long (>50 chars)"; dns.query; pcre:"/.{50,}/"; sid:1000039; rev:1; classtype:dns-query; priority:3;)
+# Rule phát hiện tên miền truy vấn quá dài (>50 ký tự), có thể dùng cho tunneling/phishing.
+
+alert http any any -> any any (msg:"HTTP Header Contains Base64 Encoded cmd.exe"; file.data; content:"Y21kLmV4ZQ=="; sid:1000040; rev:1; classtype:trojan-activity; priority:2;)
+# Rule phát hiện header/file.data chứa Base64 của "cmd.exe" (Y21kLmV4ZQ==).
 
 alert http any any -> any any (msg:"Suspicious Admin Login from External IP"; flow:to_server,established; http.uri; content:"/admin"; nocase; not_src:$HOME_NET; sid:1000041; rev:1; classtype:attempted-admin; priority:1;)
+# Rule phát hiện truy cập /admin từ nguồn không thuộc $HOME_NET (external IP truy cập admin).
+
 alert http any any -> any any (msg:"Access to .onion Domain"; http.host; content:".onion"; nocase; sid:1000042; rev:1; classtype:policy-violation; priority:2;)
+# Rule phát hiện truy cập tới host .onion (mạng ẩn Tor) — vi phạm chính sách.
+
 alert http any any -> any any (msg:"Access to Suspicious Keyword 'hacker' in URL"; http.uri; content:"hacker"; nocase; sid:1000043; rev:1; classtype:web-application-activity; priority:3;)
+# Rule phát hiện URI chứa từ "hacker" (từ khóa đáng ngờ).
+
 alert http any any -> any any (msg:"Download File with Content-Type application/x-msdownload"; flow:to_client,established; http.header; content:"application/x-msdownload"; nocase; sid:1000044; rev:1; classtype:trojan-activity; priority:2;)
+# Rule phát hiện response có header Content-Type là application/x-msdownload (thường file exe).
+
 alert dns any any -> any 53 (msg:"DNS Response Contains Localhost IP (127.0.0.1)"; dns.answer; content:"\x7F\x00\x00\x01"; sid:1000045; rev:1; classtype:bad-unknown; priority:3;)
+# Rule phát hiện DNS trả về IP 127.0.0.1 trong answer (có thể là chặn/poisoning).
+
 alert tls any any -> any any (msg:"TLS ClientHello SNI Contains 'malware'"; tls.sni; content:"malware"; nocase; sid:1000046; rev:1; classtype:bad-unknown; priority:2;)
+# Rule phát hiện SNI trong ClientHello chứa chuỗi "malware".
+
 alert tcp any any -> any 3389 (msg:"RDP Brute Force Detected"; detection_filter:track by_src, count 10, seconds 30; sid:1000047; rev:1; classtype:attempted-admin; priority:2;)
+# Rule phát hiện cố gắng brute-force RDP (>=10 lần/30s từ cùng source).
+
 alert smb any any -> any 445 (msg:"SMB Access to Sensitive File secret.docx"; file.name; content:"secret.docx"; sid:1000048; rev:1; classtype:smb-file-access; priority:2;)
+# Rule phát hiện truy xuất file SMB tên "secret.docx" (truy cập tập tin nhạy cảm).
+
 alert http any any -> any any (msg:"HTTP Download ZIP File"; http.uri; content:".zip"; nocase; sid:1000049; rev:1; classtype:web-application-activity; priority:3;)
+# Rule phát hiện download file .zip qua HTTP.
+
 alert http any any -> any any (msg:"HTTP User-Agent Botnet Pattern python-requests"; http.user_agent; content:"python-requests"; nocase; sid:1000050; rev:1; classtype:trojan-activity; priority:2;)
+# Rule phát hiện User-Agent "python-requests" (thường bot/script tự động).
