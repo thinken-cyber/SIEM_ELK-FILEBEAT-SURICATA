@@ -57,7 +57,7 @@ outputs:
         - ike
         - quic
         - anomaly
-        - fileinfo 
+        - files
 
   - stats:
       enabled: yes
