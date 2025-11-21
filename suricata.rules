@@ -147,3 +147,19 @@ alert http any any -> any any (msg:"HTTP Download ZIP File"; http.uri; content:"
 
 alert http any any -> any any (msg:"HTTP User-Agent Botnet Pattern python-requests"; http.user_agent; content:"python-requests"; nocase; sid:1000050; rev:1; classtype:trojan-activity; priority:2;)
 # Phát hiện botnet hoặc script Python (User-Agent chứa python-requests).
+
+
+alert tcp any any -> any any (msg:"TCP SYN Scan";flow:to_server;flags:S;detection_filter:track by_src,count 20,seconds 10;sid:1000051;rev:1;classtype:attempted-recon;priority:1;)
+#Phát hiện TCP Scan port ( chỉ gửi những gói TCP bật cờ SYN )
+
+alert tcp any any -> any any (msg:"TCP FIN Scan";flags:F;detection_filter:track by_src,count 20,seconds 10;sid:10000052;rev:1;classtype:attempted-recon;priority:1;)
+#Phát hiện TCP FIN Scan ( chỉ gửi những gói TCP bật cò FIN )
+
+alert tcp any any -> any any (msg:"TCP NULL Scan";flags:0;detection_filter:track by_src,count 20,seconds 10;sid:10000053;rev:1;classtype:attempted-recon;priority:1;)
+#Phát hiện NULL Scan ( chỉ gửi những gói tin mà không bật cờ )
+
+alert tcp any any -> any any (msg:"TCP XMAS Scan";flags:FPU;detection_filter:track by_src,count 20,seconds 10;sid:10000054;rev:1;classtype:attempted-recon;priority:1;)
+#Xmas Scan  ( gửi những gói tin bật cờ PUSH,FIN,URGE)
+
+alert udp any any -> any any (msg:"UDP Scan";detetion_filter:track by_src,count 20,seconds 10;sid:10000055;rev:1;classtype:attempted-recon;priority:1;)
+#UDP Scan ( gửi những gói UDP )
